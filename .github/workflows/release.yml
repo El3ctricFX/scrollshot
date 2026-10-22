@@ -1,0 +1,160 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            args: ""
+          - platform: windows-latest
+            args: ""
+          - platform: macos-latest
+            args: "--target universal-apple-darwin"
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ startsWith(matrix.platform, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build and publish
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Scrollshot ${{ github.ref_name }}"
+          releaseBody: |
+            See the assets below for downloads.
+
+            **Linux users:** download the `.flatpak` (recommended), `.AppImage`, or `.deb`.
+            **Windows users:** download the `.msi` or `.exe`.
+            **macOS users:** download the `.dmg`. On first launch, right-click the app → Open, or run `xattr -cr /Applications/Scrollshot.app` in Terminal.
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
+
+  build-flatpak:
+    name: Build Flatpak
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            flatpak \
+            flatpak-builder \
+            ostree \
+            elfutils \
+            appstream \
+            desktop-file-utils
+
+      - name: Set up Flathub remote
+        run: |
+          sudo flatpak remote-add --if-not-exists --system flathub https://flathub.org/repo/flathub.flatpakrepo
+
+      - name: Pre-install GNOME runtime and SDK
+        run: |
+          sudo flatpak install -y --system --noninteractive flathub org.gnome.Platform//47 org.gnome.Sdk//47
+
+      - name: Setup Node & Rust
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build .deb
+        run: npm run tauri build -- --bundles deb
+
+      # This step reads the version from your tauri.conf.json and injects it
+      # into the flatpak manifest so it knows which .deb to wrap.
+      - name: Sync flatpak manifest to build version
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          DEB_NAME="scrollshot_${VERSION}_amd64.deb"
+          echo "Syncing flatpak manifest to ${DEB_NAME}"
+          # Update the filename in the manifest
+          sed -i -E "s/scrollshot_[0-9]+\\.[0-9]+\\.[0-9]+_amd64\\.deb/${DEB_NAME}/g" \
+            flatpak/com.scrollshot.app.yml
+          
+      - name: Build Flatpak bundle
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: Scrollshot_${{ env.VERSION }}_x86_64.flatpak
+          manifest-path: flatpak/com.scrollshot.app.yml
+          cache-key: flatpak-builder-${{ github.sha }}
+
+      - name: Upload Flatpak to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Scrollshot_${{ env.VERSION }}_x86_64.flatpak
+          tag_name: ${{ github.ref_name }}
