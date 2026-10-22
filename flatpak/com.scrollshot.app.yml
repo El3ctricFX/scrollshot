@@ -49,10 +49,12 @@ modules:
       - install -Dm755 usr/bin/scrollshot /app/bin/scrollshot
       - install -Dm644 com.scrollshot.app.desktop /app/share/applications/com.scrollshot.app.desktop
       - install -Dm644 com.scrollshot.app.metainfo.xml /app/share/metainfo/com.scrollshot.app.metainfo.xml
-      - install -Dm644 src-tauri/icons/128x128.png /app/share/icons/hicolor/128x128/apps/com.scrollshot.app.png
+      - install -Dm644 128x128.png /app/share/icons/hicolor/128x128/apps/com.scrollshot.app.png
     sources:
       - type: file
         path: Scrollshot_0.1.0_amd64.deb
+      - type: file
+        path: 128x128.png
       - type: file
         path: com.scrollshot.app.desktop
       - type: file
