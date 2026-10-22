@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  background: #0f1315;
+  color: #d1d5db;
+}
+
+.btn {
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.35rem;
+  background: #2a3136;
+  color: #e5e7eb;
+  border: 1px solid #30363d;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.btn:hover:not(:disabled) { background: #30363d; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.input {
+  margin-left: 0.5rem;
+  width: 6rem;
+  background: #0f1315;
+  border: 1px solid #30363d;
+  border-radius: 0.25rem;
+  padding: 0.2rem 0.4rem;
+  color: #e5e7eb;
+}

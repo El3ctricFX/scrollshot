@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.scrollshot.app</id>
+  <name>Scrollshot</name>
+  <summary>Capture long scrolling screenshots</summary>
+  <description>
+    <p>Scrollshot is a utility for capturing long, scrolling screenshots on Wayland. It automatically scrolls the target window and saves each frame as a separate PNG.</p>
+  </description>
+  <launchable type="desktop-id">com.scrollshot.app.desktop</launchable>
+  <url type="homepage">https://github.com/El3ctricFX/scrollshot</url>
+  <developer_name>El3ctricFX</developer_name>
+  <content_rating type="oars-1.1" />
+</component>

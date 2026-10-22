@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Scrollshot
+Comment=Capture long scrolling screenshots
+Exec=scrollshot
+Icon=com.scrollshot.app
+Terminal=false
+Type=Application
+Categories=Utility;Graphics;
