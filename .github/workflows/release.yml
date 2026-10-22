@@ -107,6 +107,7 @@ jobs:
             ostree \
             elfutils \
             appstream \
+            appstream-compose \
             desktop-file-utils
 
       - name: Set up Flathub remote
@@ -115,7 +116,7 @@ jobs:
 
       - name: Pre-install GNOME runtime and SDK
         run: |
-          sudo flatpak install -y --system --noninteractive flathub org.gnome.Platform//48 org.gnome.Sdk//48
+          sudo flatpak install -y --system --noninteractive flathub org.gnome.Platform//49 org.gnome.Sdk//49
 
       - name: Setup Node & Rust
         uses: actions/setup-node@v4
