@@ -1,7 +1,7 @@
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use tauri::{Emitter, Manager, State};
+use tauri::{Emitter, State};
 
 mod capture;
 mod scroll;
@@ -16,16 +16,31 @@ struct AppState {
 
 #[tauri::command]
 async fn pick_region() -> Result<Option<Region>, String> {
-    let out = Command::new("slurp").output().map_err(|e| format!("running slurp: {e}"))?;
+    let out = Command::new("slurp")
+        .output()
+        .map_err(|e| format!("running slurp: {e}"))?;
+
     let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
-    if text.is_empty() { return Ok(None); }
+    if text.is_empty() {
+        return Ok(None);
+    }
 
     let mut parts = text.split_whitespace();
     let xy = parts.next().ok_or_else(|| format!("bad slurp output: {text}"))?;
     let wh = parts.next().ok_or_else(|| format!("bad slurp output: {text}"))?;
 
-    let xy_nums: Vec<i32> = xy.split(',').filter_map(|s| s.trim().parse().ok()).collect();
-    let wh_nums: Vec<u32> = wh.split('x').filter_map(|s| s.trim().parse().ok()).collect();
+    let xy_nums: Vec<i32> = xy
+        .split(',')
+        .filter_map(|s| s.trim().parse().ok())
+        .collect();
+    let wh_nums: Vec<u32> = wh
+        .split('x')
+        .filter_map(|s| s.trim().parse().ok())
+        .collect();
+
+    if xy_nums.len() != 2 || wh_nums.len() != 2 {
+        return Err(format!("could not parse slurp output: {text}"));
+    }
 
     Ok(Some(Region {
         x: xy_nums[0],
@@ -62,7 +77,7 @@ async fn capture_single_frame(app: tauri::AppHandle, region: Region) -> Result<S
     let count = std::fs::read_dir(&folder).map(|d| d.count()).unwrap_or(0) + 1;
     let path = folder.join(format!("snap-{:03}.png", count));
     
-    let scale = 1.0; // Assuming scale 1 for simplicity in manual mode
+    let scale = 1.0;
     let scaled = Region {
         x: (region.x as f64 * scale) as i32,
         y: (region.y as f64 * scale) as i32,
